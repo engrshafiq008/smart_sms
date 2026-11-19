@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
@@ -94,7 +93,7 @@ class _FinanceScreenState extends State<FinanceScreen> with SingleTickerProvider
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: Text('Bulk Generate: ${_selectedClass}'),
+          title: Text('Bulk Generate: $_selectedClass'),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -167,7 +166,9 @@ class _FinanceScreenState extends State<FinanceScreen> with SingleTickerProvider
       child: pw.Column(
         crossAxisAlignment: pw.CrossAxisAlignment.start,
         children: [
-          pw.Center(child: pw.Text('SMART SCHOOL SYSTEM', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold, color: PdfColors.blueAccent))),
+          pw.Center(child: pw.Text((_dataService.schoolSettings['schoolName'] ?? 'SMART SCHOOL SYSTEM').toUpperCase(), style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold, color: PdfColors.blueAccent))),
+          if ((_dataService.schoolSettings['address'] ?? '').isNotEmpty)
+            pw.Center(child: pw.Text(_dataService.schoolSettings['address']!, style: const pw.TextStyle(fontSize: 7, color: PdfColors.grey700))),
           pw.Center(child: pw.Text('FEE CHALLAN FORM', style: const pw.TextStyle(fontSize: 9))),
           pw.SizedBox(height: 5),
           pw.Divider(thickness: 1),
@@ -405,7 +406,7 @@ class _FinanceScreenState extends State<FinanceScreen> with SingleTickerProvider
             children: [
               Expanded(
                 child: DropdownButtonFormField<String>(
-                  value: _selectedYear,
+                  initialValue: _selectedYear,
                   decoration: const InputDecoration(labelText: 'Year', border: OutlineInputBorder()),
                   items: _getYearsList().map((y) => DropdownMenuItem(value: y, child: Text(y))).toList(),
                   onChanged: (v) => setState(() => _selectedYear = v!),
@@ -414,7 +415,7 @@ class _FinanceScreenState extends State<FinanceScreen> with SingleTickerProvider
               const SizedBox(width: 12),
               Expanded(
                 child: DropdownButtonFormField<String>(
-                  value: _selectedMonth,
+                  initialValue: _selectedMonth,
                   decoration: const InputDecoration(labelText: 'Month', border: OutlineInputBorder()),
                   items: _months.map((m) => DropdownMenuItem(value: m, child: Text(m))).toList(),
                   onChanged: (v) => setState(() => _selectedMonth = v!),
@@ -423,7 +424,7 @@ class _FinanceScreenState extends State<FinanceScreen> with SingleTickerProvider
               const SizedBox(width: 12),
               Expanded(
                 child: DropdownButtonFormField<String>(
-                  value: _selectedClass,
+                  initialValue: _selectedClass,
                   decoration: const InputDecoration(labelText: 'Class', border: OutlineInputBorder()),
                   items: _grades.map((c) => DropdownMenuItem(value: c, child: Text(c == 'All Classes' ? c : (c == 'Nursery/KG' ? c : 'Class $c')))).toList(),
                   onChanged: (v) => setState(() => _selectedClass = v!),
@@ -432,7 +433,7 @@ class _FinanceScreenState extends State<FinanceScreen> with SingleTickerProvider
               const SizedBox(width: 12),
               Expanded(
                 child: DropdownButtonFormField<String>(
-                  value: _selectedSection,
+                  initialValue: _selectedSection,
                   decoration: const InputDecoration(labelText: 'Section', border: OutlineInputBorder()),
                   items: _sections.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
                   onChanged: (v) => setState(() => _selectedSection = v!),
@@ -482,7 +483,7 @@ class _FinanceScreenState extends State<FinanceScreen> with SingleTickerProvider
                                   Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                                     decoration: BoxDecoration(
-                                      color: voucher['status'] == 'Paid' ? Colors.green.withOpacity(0.1) : Colors.red.withOpacity(0.1),
+                                      color: voucher['status'] == 'Paid' ? Colors.green.withValues(alpha: 0.1) : Colors.red.withValues(alpha: 0.1),
                                       borderRadius: BorderRadius.circular(20),
                                       border: Border.all(color: voucher['status'] == 'Paid' ? Colors.green : Colors.red),
                                     ),
@@ -531,7 +532,7 @@ class _FinanceScreenState extends State<FinanceScreen> with SingleTickerProvider
               SizedBox(
                 width: 200,
                 child: DropdownButtonFormField<String>(
-                  value: _voucherStatusFilter,
+                  initialValue: _voucherStatusFilter,
                   decoration: const InputDecoration(labelText: 'Filter Status', border: OutlineInputBorder(), isDense: true),
                   items: _voucherStatuses.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
                   onChanged: (v) => setState(() => _voucherStatusFilter = v!),
@@ -554,7 +555,7 @@ class _FinanceScreenState extends State<FinanceScreen> with SingleTickerProvider
 
                       return ListTile(
                         leading: CircleAvatar(
-                          backgroundColor: v['status'] == 'Paid' ? Colors.green.withOpacity(0.2) : Colors.red.withOpacity(0.2),
+                          backgroundColor: v['status'] == 'Paid' ? Colors.green.withValues(alpha: 0.2) : Colors.red.withValues(alpha: 0.2),
                           child: Icon(v['status'] == 'Paid' ? Icons.check : Icons.warning, color: v['status'] == 'Paid' ? Colors.green : Colors.red),
                         ),
                         title: Text('${v['studentName']} (${v['regNo']})', style: const TextStyle(fontWeight: FontWeight.bold)),
@@ -635,8 +636,8 @@ class _FinanceScreenState extends State<FinanceScreen> with SingleTickerProvider
       child: Container(
         padding: const EdgeInsets.all(24),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.05),
-          border: Border.all(color: color.withOpacity(0.3), width: 2),
+          color: color.withValues(alpha: 0.05),
+          border: Border.all(color: color.withValues(alpha: 0.3), width: 2),
           borderRadius: BorderRadius.circular(12),
         ),
         child: Column(

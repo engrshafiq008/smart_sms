@@ -93,7 +93,7 @@ class _HrScreenState extends State<HrScreen> with SingleTickerProviderStateMixin
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   DropdownButtonFormField<String>(
-                    value: selectedRole,
+                    initialValue: selectedRole,
                     decoration: const InputDecoration(labelText: 'Staff Role / Designation', border: OutlineInputBorder()),
                     items: _roles.map((r) => DropdownMenuItem(value: r, child: Text(r))).toList(),
                     onChanged: (v) => setDialogState(() => selectedRole = v!),
@@ -224,7 +224,7 @@ class _HrScreenState extends State<HrScreen> with SingleTickerProviderStateMixin
             child: pw.Column(
               crossAxisAlignment: pw.CrossAxisAlignment.start,
               children: [
-                pw.Center(child: pw.Text('SMART SCHOOL SYSTEM', style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold, color: PdfColors.teal))),
+                pw.Center(child: pw.Text((_dataService.schoolSettings['schoolName'] ?? 'SMART SCHOOL SYSTEM').toUpperCase(), style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold, color: PdfColors.teal))),
                 pw.Center(child: pw.Text('OFFICIAL STAFF PAYSLIP', style: const pw.TextStyle(fontSize: 12))),
                 pw.SizedBox(height: 10),
                 pw.Divider(thickness: 1),
@@ -355,7 +355,7 @@ class _HrScreenState extends State<HrScreen> with SingleTickerProviderStateMixin
                     itemBuilder: (context, index) {
                       final staff = staffList[index];
                       return ListTile(
-                        leading: CircleAvatar(backgroundColor: Colors.teal.withOpacity(0.1), child: const Icon(Icons.person, color: Colors.teal)),
+                        leading: CircleAvatar(backgroundColor: Colors.teal.withValues(alpha: 0.1), child: const Icon(Icons.person, color: Colors.teal)),
                         title: Text('${staff['name']} (${staff['id']})', style: const TextStyle(fontWeight: FontWeight.bold)),
                         subtitle: Text('Designation: ${staff['role']}\nBasic Salary: Rs. ${staff['basicSalary']} | Phone: ${staff['phone']}'),
                         isThreeLine: true,
@@ -464,7 +464,7 @@ class _HrScreenState extends State<HrScreen> with SingleTickerProviderStateMixin
             children: [
               Expanded(
                 child: DropdownButtonFormField<String>(
-                  value: _selectedYear,
+                  initialValue: _selectedYear,
                   decoration: const InputDecoration(labelText: 'Select Year', border: OutlineInputBorder()),
                   items: _getYearsList().map((y) => DropdownMenuItem(value: y, child: Text(y))).toList(),
                   onChanged: (v) => setState(() => _selectedYear = v!),
@@ -473,7 +473,7 @@ class _HrScreenState extends State<HrScreen> with SingleTickerProviderStateMixin
               const SizedBox(width: 12),
               Expanded(
                 child: DropdownButtonFormField<String>(
-                  value: _selectedMonth,
+                  initialValue: _selectedMonth,
                   decoration: const InputDecoration(labelText: 'Select Month', border: OutlineInputBorder()),
                   items: _months.map((m) => DropdownMenuItem(value: m, child: Text(m))).toList(),
                   onChanged: (v) => setState(() => _selectedMonth = v!),
@@ -513,7 +513,7 @@ class _HrScreenState extends State<HrScreen> with SingleTickerProviderStateMixin
                                   Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                                     decoration: BoxDecoration(
-                                      color: slip['status'] == 'Paid' ? Colors.green.withOpacity(0.1) : Colors.red.withOpacity(0.1),
+                                      color: slip['status'] == 'Paid' ? Colors.green.withValues(alpha: 0.1) : Colors.red.withValues(alpha: 0.1),
                                       borderRadius: BorderRadius.circular(20),
                                       border: Border.all(color: slip['status'] == 'Paid' ? Colors.green : Colors.red),
                                     ),

@@ -8,9 +8,7 @@ import 'package:flutter/foundation.dart'
 class DefaultFirebaseOptions {
   static FirebaseOptions get currentPlatform {
     if (kIsWeb) {
-      throw UnsupportedError(
-        'DefaultFirebaseOptions have not been configured for web.',
-      );
+      return web;
     }
     switch (defaultTargetPlatform) {
       case TargetPlatform.android:
@@ -32,6 +30,15 @@ class DefaultFirebaseOptions {
     }
   }
 
+  static const FirebaseOptions web = FirebaseOptions(
+    apiKey: 'AIzaSyBYEj33KwLqBsbCf8I19r8nHddwMfqxEV8',
+    appId: '1:343050982757:web:9b1e37880de589e40dfd8c',
+    messagingSenderId: '343050982757',
+    projectId: 'smart-sms-45169',
+    authDomain: 'smart-sms-45169.firebaseapp.com',
+    storageBucket: 'smart-sms-45169.firebasestorage.app',
+  );
+
   static const FirebaseOptions android = FirebaseOptions(
     apiKey: 'AIzaSyDummyKeyForSmartSmsAndroid',
     appId: '1:1234567890:android:abcdef',
@@ -44,6 +51,6 @@ class DefaultFirebaseOptions {
     appId: '1:1234567890:windows:abcdef',
     messagingSenderId: '1234567890',
     projectId: 'smart-sms-45169',
-    storageBucket: 'smart-sms-45169.appspot.com',
+    storageBucket: 'smart-sms-45169.firebasestorage.app',
   );
 }

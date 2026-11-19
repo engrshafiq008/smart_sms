@@ -156,7 +156,7 @@ class _AdmissionsScreenState extends State<AdmissionsScreen> with SingleTickerPr
                     ),
                     const SizedBox(height: 12),
                     DropdownButtonFormField<String>(
-                      value: inqGrade,
+                      initialValue: inqGrade,
                       decoration: const InputDecoration(labelText: 'Target Class / Grade', border: OutlineInputBorder()),
                       // FIXED: Explicitly casting to DropdownMenuItem<String>
                       items: _grades.map((g) => DropdownMenuItem<String>(value: g, child: Text(g == 'Nursery/KG' ? g : 'Class $g'))).toList(),
@@ -212,7 +212,7 @@ class _AdmissionsScreenState extends State<AdmissionsScreen> with SingleTickerPr
                     pw.Column(
                       crossAxisAlignment: pw.CrossAxisAlignment.start,
                       children: [
-                        pw.Text('SMART SCHOOL SYSTEM', style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
+                        pw.Text((_dataService.schoolSettings['schoolName'] ?? 'SMART SCHOOL SYSTEM').toUpperCase(), style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
                         pw.Text('Admission Acknowledgement Slip', style: const pw.TextStyle(fontSize: 10)),
                       ],
                     ),
@@ -329,7 +329,7 @@ class _AdmissionsScreenState extends State<AdmissionsScreen> with SingleTickerPr
                 Expanded(
                   flex: 1,
                   child: DropdownButtonFormField<String>(
-                    value: _selectedGender,
+                    initialValue: _selectedGender,
                     decoration: const InputDecoration(labelText: 'Gender *', border: OutlineInputBorder()),
                     // FIXED: Explicitly casted to DropdownMenuItem<String>
                     items: _genders.map((g) => DropdownMenuItem<String>(value: g, child: Text(g))).toList(),
@@ -340,7 +340,7 @@ class _AdmissionsScreenState extends State<AdmissionsScreen> with SingleTickerPr
                 Expanded(
                   flex: 1,
                   child: DropdownButtonFormField<String>(
-                    value: _selectedYear,
+                    initialValue: _selectedYear,
                     decoration: const InputDecoration(labelText: 'Academic Year *', border: OutlineInputBorder()),
                     // FIXED: Explicitly casted to DropdownMenuItem<String>
                     items: yearsList.map((y) => DropdownMenuItem<String>(value: y, child: Text(y))).toList(),
@@ -402,7 +402,7 @@ class _AdmissionsScreenState extends State<AdmissionsScreen> with SingleTickerPr
                 const SizedBox(width: 16),
                 Expanded(
                   child: DropdownButtonFormField<String>(
-                    value: _selectedGrade,
+                    initialValue: _selectedGrade,
                     decoration: const InputDecoration(labelText: 'Target Class *', border: OutlineInputBorder()),
                     // FIXED: Explicitly casted to DropdownMenuItem<String>
                     items: _grades.map((g) => DropdownMenuItem<String>(value: g, child: Text(g == 'Nursery/KG' ? g : 'Class $g'))).toList(),
@@ -412,7 +412,7 @@ class _AdmissionsScreenState extends State<AdmissionsScreen> with SingleTickerPr
                 const SizedBox(width: 16),
                 Expanded(
                   child: DropdownButtonFormField<String>(
-                    value: _selectedSection,
+                    initialValue: _selectedSection,
                     decoration: const InputDecoration(labelText: 'Section *', border: OutlineInputBorder()),
                     // FIXED: Explicitly casted to DropdownMenuItem<String>
                     items: _sections.map((s) => DropdownMenuItem<String>(value: s, child: Text(s))).toList(),
@@ -527,7 +527,7 @@ class _AdmissionsScreenState extends State<AdmissionsScreen> with SingleTickerPr
                       return ListTile(
                         key: ValueKey(inq['id']),
                         leading: CircleAvatar(
-                          backgroundColor: Colors.teal.withOpacity(0.1),
+                          backgroundColor: Colors.teal.withValues(alpha: 0.1),
                           child: Text(inq['id']!.split('-').last, style: const TextStyle(color: Colors.teal, fontWeight: FontWeight.bold, fontSize: 11)),
                         ),
                         title: Text('Parent: ${inq['parentName']} (Student: ${inq['studentName']})', style: const TextStyle(fontWeight: FontWeight.bold)),
@@ -617,7 +617,7 @@ class _AdmissionsScreenState extends State<AdmissionsScreen> with SingleTickerPr
                       return ListTile(
                         key: ValueKey(app['id']),
                         leading: CircleAvatar(
-                          backgroundColor: Colors.blue.withOpacity(0.1),
+                          backgroundColor: Colors.blue.withValues(alpha: 0.1),
                           child: Text(app['id']!.split('-').last, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
                         ),
                         title: Text('${app['name']} (${app['gender']})', style: const TextStyle(fontWeight: FontWeight.bold)),
@@ -635,9 +635,9 @@ class _AdmissionsScreenState extends State<AdmissionsScreen> with SingleTickerPr
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 12),
                               decoration: BoxDecoration(
-                                color: statusColor.withOpacity(0.1),
+                                color: statusColor.withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(20),
-                                border: Border.all(color: statusColor.withOpacity(0.3)),
+                                border: Border.all(color: statusColor.withValues(alpha: 0.3)),
                               ),
                               child: DropdownButtonHideUnderline(
                                 child: DropdownButton<String>(

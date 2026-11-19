@@ -68,7 +68,7 @@ class _AcademicsScreenState extends State<AcademicsScreen> with SingleTickerProv
                         children: [
                           Expanded(
                             child: DropdownButtonFormField<String>(
-                              value: gender,
+                              initialValue: gender,
                               decoration: const InputDecoration(labelText: 'Gender *', border: OutlineInputBorder()),
                               items: ['Male', 'Female', 'Other'].map((g) => DropdownMenuItem(value: g, child: Text(g))).toList(),
                               onChanged: (v) => setDialogState(() => gender = v!),
@@ -193,7 +193,7 @@ class _AcademicsScreenState extends State<AcademicsScreen> with SingleTickerProv
                         children: [
                           Expanded(
                             child: DropdownButtonFormField<String>(
-                              value: selectedClass,
+                              initialValue: selectedClass,
                               decoration: const InputDecoration(labelText: 'Class', border: OutlineInputBorder()),
                               items: _grades.map((c) => DropdownMenuItem(value: c, child: Text('Class $c'))).toList(),
                               onChanged: (v) => setDialogState(() => selectedClass = v!),
@@ -202,7 +202,7 @@ class _AcademicsScreenState extends State<AcademicsScreen> with SingleTickerProv
                           const SizedBox(width: 12),
                           Expanded(
                             child: DropdownButtonFormField<String>(
-                              value: selectedSection,
+                              initialValue: selectedSection,
                               decoration: const InputDecoration(labelText: 'Section', border: OutlineInputBorder()),
                               items: _sections.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
                               onChanged: (v) => setDialogState(() => selectedSection = v!),
@@ -214,7 +214,8 @@ class _AcademicsScreenState extends State<AcademicsScreen> with SingleTickerProv
                       
                       // Filtered Subject Dropdown
                       DropdownButtonFormField<String>(
-                        value: selectedSubject,
+                        key: ValueKey(selectedSubject),
+                        initialValue: selectedSubject,
                         decoration: const InputDecoration(labelText: 'Subject Name', border: OutlineInputBorder()),
                         items: availableSubjects.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
                         onChanged: availableSubjects.contains('No Subjects Available') ? null : (v) => setDialogState(() => selectedSubject = v!),
@@ -225,7 +226,7 @@ class _AcademicsScreenState extends State<AcademicsScreen> with SingleTickerProv
                         children: [
                           Expanded(
                             child: DropdownButtonFormField<String>(
-                              value: selectedPeriod,
+                              initialValue: selectedPeriod,
                               decoration: const InputDecoration(labelText: 'Period Number', border: OutlineInputBorder()),
                               items: _periods.map((p) => DropdownMenuItem(value: p, child: Text(p))).toList(),
                               onChanged: (v) => setDialogState(() => selectedPeriod = v!),
@@ -234,7 +235,7 @@ class _AcademicsScreenState extends State<AcademicsScreen> with SingleTickerProv
                           const SizedBox(width: 12),
                           Expanded(
                             child: DropdownButtonFormField<String>(
-                              value: selectedTeacher,
+                              initialValue: selectedTeacher,
                               decoration: const InputDecoration(labelText: 'Assign Teacher', border: OutlineInputBorder()),
                               items: teacherNames.map((t) => DropdownMenuItem(value: t, child: Text(t))).toList(),
                               onChanged: (v) => setDialogState(() => selectedTeacher = v!),
@@ -293,7 +294,7 @@ class _AcademicsScreenState extends State<AcademicsScreen> with SingleTickerProv
                     String subCode = '${selectedSubject.substring(0, 3).toUpperCase()}-101';
 
                     if (isEdit) {
-                      final updatedData = Map<String, String>.from(existingSubject!);
+                      final updatedData = Map<String, String>.from(existingSubject);
                       updatedData['name'] = selectedSubject;
                       updatedData['code'] = subCode;
                       updatedData['class'] = selectedClass;
@@ -340,12 +341,12 @@ class _AcademicsScreenState extends State<AcademicsScreen> with SingleTickerProv
           return pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: [
-              pw.Text('SMART SCHOOL SYSTEM', style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold)),
+              pw.Text((_dataService.schoolSettings['schoolName'] ?? 'SMART SCHOOL SYSTEM').toUpperCase(), style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold)),
               pw.Text('Complete School Master Timetable', style: const pw.TextStyle(fontSize: 12)),
               pw.SizedBox(height: 10),
               pw.Divider(thickness: 1),
               pw.SizedBox(height: 10),
-              pw.Table.fromTextArray(
+              pw.TableHelper.fromTextArray(
                 headers: ['Subject Code', 'Subject Name', 'Class & Sec', 'Period', 'Assigned Teacher'],
                 data: _dataService.academicSubjects.map((s) => [
                   s['code'] ?? '',
@@ -384,12 +385,12 @@ class _AcademicsScreenState extends State<AcademicsScreen> with SingleTickerProv
             child: pw.Column(
               crossAxisAlignment: pw.CrossAxisAlignment.start,
               children: [
-                pw.Text('SMART SCHOOL SYSTEM', style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold)),
+                pw.Text((_dataService.schoolSettings['schoolName'] ?? 'SMART SCHOOL SYSTEM').toUpperCase(), style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold)),
                 pw.Text('Teacher Schedule & Routine: $teacherName', style: const pw.TextStyle(fontSize: 12)),
                 pw.SizedBox(height: 10),
                 pw.Divider(thickness: 1),
                 pw.SizedBox(height: 15),
-                pw.Table.fromTextArray(
+                pw.TableHelper.fromTextArray(
                   headers: ['Period', 'Subject Name', 'Class & Section', 'Subject Code'],
                   data: teacherSubjects.map((s) => [
                     s['period'] ?? '',
@@ -485,7 +486,7 @@ class _AcademicsScreenState extends State<AcademicsScreen> with SingleTickerProv
                     itemBuilder: (context, index) {
                       final t = staff[index];
                       return ListTile(
-                        leading: CircleAvatar(backgroundColor: Colors.blueAccent.withOpacity(0.1), child: const Icon(Icons.person, color: Colors.blueAccent)),
+                        leading: CircleAvatar(backgroundColor: Colors.blueAccent.withValues(alpha: 0.1), child: const Icon(Icons.person, color: Colors.blueAccent)),
                         title: Text('${t['name']} (${t['id']})', style: const TextStyle(fontWeight: FontWeight.bold)),
                         subtitle: Text('Father: ${t['father']} | Phone: ${t['phone']}\nCNIC: ${t['cnic']} | Address: ${t['address']}'),
                         isThreeLine: true,
@@ -547,7 +548,7 @@ class _AcademicsScreenState extends State<AcademicsScreen> with SingleTickerProv
                       bool isUnassigned = sub['teacher'] == 'Unassigned';
 
                       return ListTile(
-                        leading: CircleAvatar(backgroundColor: Colors.teal.withOpacity(0.1), child: const Icon(Icons.book, color: Colors.teal)),
+                        leading: CircleAvatar(backgroundColor: Colors.teal.withValues(alpha: 0.1), child: const Icon(Icons.book, color: Colors.teal)),
                         title: Text('${sub['name']} (${sub['code']})', style: const TextStyle(fontWeight: FontWeight.bold)),
                         subtitle: RichText(
                           text: TextSpan(

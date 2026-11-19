@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'dart:convert';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -73,7 +72,7 @@ class StudentActions {
                   pw.Column(
                     crossAxisAlignment: pw.CrossAxisAlignment.start,
                     children: [
-                      pw.Text('SMART SCHOOL SYSTEM', style: pw.TextStyle(fontSize: 15, fontWeight: pw.FontWeight.bold)),
+                      pw.Text((SchoolDataService().schoolSettings['schoolName'] ?? 'SMART SCHOOL SYSTEM').toUpperCase(), style: pw.TextStyle(fontSize: 15, fontWeight: pw.FontWeight.bold)),
                       pw.Text('Student Directory Report: $classFilter ($sectionFilter)', style: const pw.TextStyle(fontSize: 10)),
                     ],
                   ),
@@ -157,7 +156,7 @@ class StudentActions {
             child: pw.Column(
               crossAxisAlignment: pw.CrossAxisAlignment.center,
               children: [
-                pw.Text('SMART SCHOOL SYSTEM', style: pw.TextStyle(fontSize: 22, fontWeight: pw.FontWeight.bold, color: PdfColors.blueAccent)),
+                pw.Text((SchoolDataService().schoolSettings['schoolName'] ?? 'SMART SCHOOL SYSTEM').toUpperCase(), style: pw.TextStyle(fontSize: 22, fontWeight: pw.FontWeight.bold, color: PdfColors.blueAccent)),
                 pw.Text('OFFICIAL SCHOOL LEAVING CERTIFICATE (SLC)', style: pw.TextStyle(fontSize: 13, fontWeight: pw.FontWeight.bold)),
                 pw.SizedBox(height: 20),
                 pw.Divider(thickness: 1),
@@ -233,7 +232,7 @@ class StudentActions {
                         children: [
                           Expanded(
                             child: DropdownButtonFormField<String>(
-                              value: selectedGender,
+                              initialValue: selectedGender,
                               decoration: const InputDecoration(labelText: 'Gender', border: OutlineInputBorder()),
                               items: ['Male', 'Female', 'Other'].map((g) => DropdownMenuItem(value: g, child: Text(g))).toList(),
                               onChanged: (v) => setDialogState(() => selectedGender = v!),
@@ -242,7 +241,7 @@ class StudentActions {
                           const SizedBox(width: 12),
                           Expanded(
                             child: DropdownButtonFormField<String>(
-                              value: standardClasses.contains(selectedClass) ? selectedClass : '1',
+                              initialValue: standardClasses.contains(selectedClass) ? selectedClass : '1',
                               decoration: const InputDecoration(labelText: 'Class', border: OutlineInputBorder()),
                               items: standardClasses.map((c) => DropdownMenuItem(value: c, child: Text('Class $c'))).toList(),
                               onChanged: (v) => setDialogState(() => selectedClass = v!),
@@ -255,7 +254,7 @@ class StudentActions {
                         children: [
                           Expanded(
                             child: DropdownButtonFormField<String>(
-                              value: sections.contains(selectedSection) ? selectedSection : 'Section A',
+                              initialValue: sections.contains(selectedSection) ? selectedSection : 'Section A',
                               decoration: const InputDecoration(labelText: 'Section', border: OutlineInputBorder()),
                               items: sections.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
                               onChanged: (v) => setDialogState(() => selectedSection = v!),
@@ -315,7 +314,7 @@ class StudentActions {
             return AlertDialog(
               title: const Text('Transfer Out / Left Student'),
               content: DropdownButtonFormField<String>(
-                value: reason,
+                initialValue: reason,
                 decoration: const InputDecoration(labelText: 'Exit Reason', border: OutlineInputBorder()),
                 items: const [
                   DropdownMenuItem(value: 'Transferred / SLC Issued', child: Text('Transferred / SLC Issued')),

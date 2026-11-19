@@ -34,6 +34,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
   void initState() {
     super.initState();
     _initControllers();
+    _dataService.addListener(_onDataServiceChanged);
+  }
+
+  void _onDataServiceChanged() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    _dataService.removeListener(_onDataServiceChanged);
+    _schoolNameCtrl.dispose();
+    _addressCtrl.dispose();
+    _phoneCtrl.dispose();
+    _emailCtrl.dispose();
+    super.dispose();
   }
 
   void _initControllers() {
@@ -46,17 +61,65 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _currency = settings['currency'] ?? 'PKR';
   }
 
-  void _saveSettings() {
+  bool _isSavingSettings = false;
+  bool _isManualSyncing = false;
+
+  Future<void> _saveSettings() async {
+    setState(() => _isSavingSettings = true);
     Map<String, String> newSettings = {
-      'schoolName': _schoolNameCtrl.text,
-      'address': _addressCtrl.text,
-      'phone': _phoneCtrl.text,
-      'email': _emailCtrl.text,
+      'schoolName': _schoolNameCtrl.text.trim(),
+      'address': _addressCtrl.text.trim(),
+      'phone': _phoneCtrl.text.trim(),
+      'email': _emailCtrl.text.trim(),
       'academicYear': _academicYear,
       'currency': _currency,
     };
-    _dataService.updateSchoolSettings(newSettings);
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Settings Saved Successfully!'), backgroundColor: Colors.green));
+    try {
+      await _dataService.saveSchoolSettingsAsync(newSettings);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Settings Saved & Synced to Cloud Firestore!'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Saved locally, but Cloud Sync Error: $e'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isSavingSettings = false);
+    }
+  }
+
+  Future<void> _handleManualSync() async {
+    setState(() => _isManualSyncing = true);
+    try {
+      await _dataService.syncAllToFirestore();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('All school records synced to Cloud Firestore successfully!'),
+          backgroundColor: Colors.green,
+          duration: Duration(seconds: 4),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Cloud Sync Error: $e\nPlease verify Firestore Security Rules in Firebase Console.'),
+          backgroundColor: Colors.redAccent,
+          duration: const Duration(seconds: 6),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isManualSyncing = false);
+    }
   }
 
   void _showFactoryResetDialog() {
@@ -190,9 +253,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           const SizedBox(height: 32),
           ElevatedButton.icon(
-            onPressed: _saveSettings,
-            icon: const Icon(Icons.save, color: Colors.white),
-            label: const Text('Save Changes', style: TextStyle(color: Colors.white)),
+            onPressed: _isSavingSettings ? null : _saveSettings,
+            icon: _isSavingSettings
+                ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                : const Icon(Icons.save, color: Colors.white),
+            label: Text(_isSavingSettings ? 'Saving & Syncing...' : 'Save Changes', style: const TextStyle(color: Colors.white)),
             style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent, padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16)),
           ),
         ],
@@ -208,23 +273,25 @@ class _SettingsScreenState extends State<SettingsScreen> {
         const Text('Academic & Regional Preferences', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
         const SizedBox(height: 32),
         DropdownButtonFormField<String>(
-          value: _academicYear,
+          initialValue: _academicYear,
           decoration: const InputDecoration(labelText: 'Active Academic Session', border: OutlineInputBorder(), prefixIcon: Icon(Icons.date_range)),
           items: ['2025-2026', '2026-2027', '2027-2028'].map((y) => DropdownMenuItem(value: y, child: Text(y))).toList(),
           onChanged: (v) => setState(() => _academicYear = v!),
         ),
         const SizedBox(height: 20),
         DropdownButtonFormField<String>(
-          value: _currency,
+          initialValue: _currency,
           decoration: const InputDecoration(labelText: 'Default Currency (Billing)', border: OutlineInputBorder(), prefixIcon: Icon(Icons.monetization_on)),
           items: ['PKR', 'USD', 'EUR', 'GBP'].map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
           onChanged: (v) => setState(() => _currency = v!),
         ),
         const SizedBox(height: 32),
         ElevatedButton.icon(
-          onPressed: _saveSettings,
-          icon: const Icon(Icons.save, color: Colors.white),
-          label: const Text('Save Preferences', style: TextStyle(color: Colors.white)),
+          onPressed: _isSavingSettings ? null : _saveSettings,
+          icon: _isSavingSettings
+              ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+              : const Icon(Icons.save, color: Colors.white),
+          label: Text(_isSavingSettings ? 'Saving & Syncing...' : 'Save Preferences', style: const TextStyle(color: Colors.white)),
           style: ElevatedButton.styleFrom(backgroundColor: Colors.teal, padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16)),
         ),
       ],
@@ -243,7 +310,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           decoration: BoxDecoration(
             gradient: const LinearGradient(colors: [Colors.indigo, Colors.blueAccent]),
             borderRadius: BorderRadius.circular(16),
-            boxShadow: [BoxShadow(color: Colors.indigo.withOpacity(0.4), blurRadius: 10, offset: const Offset(0, 4))],
+            boxShadow: [BoxShadow(color: Colors.indigo.withValues(alpha: 0.4), blurRadius: 10, offset: const Offset(0, 4))],
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -280,37 +347,130 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   // --- 4. Database & Backup ---
   Widget _buildDatabaseBackup() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text('Database Management', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-        const Text('Manage your local Hive database storage and backups.', style: TextStyle(color: Colors.black54)),
-        const SizedBox(height: 32),
-        ListTile(
-          contentPadding: EdgeInsets.zero,
-          leading: const CircleAvatar(backgroundColor: Colors.blueAccent, child: Icon(Icons.cloud_download, color: Colors.white)),
-          title: const Text('Export Database Backup', style: TextStyle(fontWeight: FontWeight.bold)),
-          subtitle: const Text('Save a copy of your records safely to your PC.'),
-          trailing: OutlinedButton(
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Backup generated successfully in Documents folder.')));
-            },
-            child: const Text('Export Now'),
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('Database & Cloud Sync', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+          const Text('Manage multi-tenant Cloud Firestore synchronization and local backups.', style: TextStyle(color: Colors.black54)),
+          const SizedBox(height: 28),
+
+          // Cloud Firestore Sync Card
+          Container(
+            padding: const EdgeInsets.all(22),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF8FAFC),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: Colors.blueAccent.withValues(alpha: 0.25)),
+              boxShadow: [
+                BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 8, offset: const Offset(0, 2)),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.blueAccent.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(Icons.cloud_sync, color: Colors.blueAccent, size: 30),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Multi-Tenant Cloud Sync (Firestore)',
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.black87),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            _dataService.isSyncing
+                                ? 'Synchronizing all school records with Cloud Firestore...'
+                                : (_dataService.lastSyncTime != null
+                                    ? 'Last Synced: ${_dataService.lastSyncTime!.toString().split('.')[0]}'
+                                    : 'Push all local Hive records (Students, Fees, Admissions, Exams, Attendance) to Cloud Firestore under schools/${_dataService.currentUid ?? "uid"}.'),
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: _dataService.lastSyncError != null ? Colors.redAccent : Colors.black54,
+                            ),
+                          ),
+                          if (_dataService.lastSyncError != null) ...[
+                            const SizedBox(height: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: Colors.red.withValues(alpha: 0.08),
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(color: Colors.redAccent.withValues(alpha: 0.2)),
+                              ),
+                              child: Text(
+                                'Sync Warning: ${_dataService.lastSyncError}',
+                                style: const TextStyle(fontSize: 12, color: Colors.redAccent, fontWeight: FontWeight.w600),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    ElevatedButton.icon(
+                      onPressed: (_isManualSyncing || _dataService.isSyncing) ? null : _handleManualSync,
+                      icon: (_isManualSyncing || _dataService.isSyncing)
+                          ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                          : const Icon(Icons.cloud_upload, color: Colors.white, size: 18),
+                      label: Text(
+                        (_isManualSyncing || _dataService.isSyncing) ? 'Syncing...' : 'Sync to Cloud Now',
+                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blueAccent,
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
-        ),
-        const Padding(padding: EdgeInsets.symmetric(vertical: 16), child: Divider()),
-        ListTile(
-          contentPadding: EdgeInsets.zero,
-          leading: CircleAvatar(backgroundColor: Colors.red.shade100, child: const Icon(Icons.delete_forever, color: Colors.red)),
-          title: const Text('Factory Reset System', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red)),
-          subtitle: const Text('Wipe all data, students, and staff records. Cannot be undone.'),
-          trailing: ElevatedButton(
-            onPressed: _showFactoryResetDialog,
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('Reset Data', style: TextStyle(color: Colors.white)),
+          const SizedBox(height: 24),
+
+          // Local Backup Export
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: const CircleAvatar(backgroundColor: Colors.blueAccent, child: Icon(Icons.cloud_download, color: Colors.white)),
+            title: const Text('Export Local Backup', style: TextStyle(fontWeight: FontWeight.bold)),
+            subtitle: const Text('Save a copy of your records safely to your PC.'),
+            trailing: OutlinedButton(
+              onPressed: () {
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Backup generated successfully in Documents folder.')));
+              },
+              child: const Text('Export Now'),
+            ),
           ),
-        ),
-      ],
+          const Padding(padding: EdgeInsets.symmetric(vertical: 16), child: Divider()),
+
+          // Factory Reset
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: CircleAvatar(backgroundColor: Colors.red.shade100, child: const Icon(Icons.delete_forever, color: Colors.red)),
+            title: const Text('Factory Reset System', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red)),
+            subtitle: const Text('Wipe all local data, students, and staff records. Cannot be undone.'),
+            trailing: ElevatedButton(
+              onPressed: _showFactoryResetDialog,
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+              child: const Text('Reset Data', style: TextStyle(color: Colors.white)),
+            ),
+          ),
+        ],
+      ),
     );
   }
 

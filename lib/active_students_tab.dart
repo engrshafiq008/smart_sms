@@ -66,14 +66,14 @@ class _ActiveStudentsTabState extends State<ActiveStudentsTab> {
                   const Text('Select source and destination class for promotion.'),
                   const SizedBox(height: 16),
                   DropdownButtonFormField<String>(
-                    value: fromClass,
+                    initialValue: fromClass,
                     decoration: const InputDecoration(labelText: 'Promote From Class', border: OutlineInputBorder()),
                     items: StudentActions.standardClasses.map((c) => DropdownMenuItem(value: c, child: Text('Class $c'))).toList(),
                     onChanged: (v) => setDialogState(() => fromClass = v!),
                   ),
                   const SizedBox(height: 12),
                   DropdownButtonFormField<String>(
-                    value: toClass,
+                    initialValue: toClass,
                     decoration: const InputDecoration(labelText: 'Promote To Class', border: OutlineInputBorder()),
                     items: StudentActions.standardClasses.map((c) => DropdownMenuItem(value: c, child: Text('Class $c'))).toList(),
                     onChanged: (v) => setDialogState(() => toClass = v!),
@@ -84,15 +84,7 @@ class _ActiveStudentsTabState extends State<ActiveStudentsTab> {
                 TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
                 ElevatedButton(
                   onPressed: () {
-                    int count = 0;
-                    for (var student in _dataService.activeStudents) {
-                      String dbClass = (student['class'] ?? '').replaceAll('Class ', '').trim();
-                      if (dbClass == fromClass) {
-                        student['class'] = toClass;
-                        count++;
-                      }
-                    }
-                    _dataService.notifyListeners();
+                    int count = _dataService.bulkPromoteStudents(fromClass: fromClass, toClass: toClass);
                     Navigator.pop(context);
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(content: Text('Successfully promoted $count students!'), backgroundColor: Colors.green),
@@ -181,7 +173,7 @@ class _ActiveStudentsTabState extends State<ActiveStudentsTab> {
                 children: [
                   Expanded(
                     child: DropdownButtonFormField<String>(
-                      value: _selectedClassFilter,
+                      initialValue: _selectedClassFilter,
                       decoration: const InputDecoration(
                         labelText: 'Filter by Class', 
                         border: OutlineInputBorder(),
@@ -198,7 +190,7 @@ class _ActiveStudentsTabState extends State<ActiveStudentsTab> {
                   const SizedBox(width: 16),
                   Expanded(
                     child: DropdownButtonFormField<String>(
-                      value: _selectedSectionFilter,
+                      initialValue: _selectedSectionFilter,
                       decoration: const InputDecoration(
                         labelText: 'Filter by Section', 
                         border: OutlineInputBorder(),
@@ -257,7 +249,7 @@ class _ActiveStudentsTabState extends State<ActiveStudentsTab> {
                             contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                             leading: CircleAvatar(
                               radius: 24,
-                              backgroundColor: Colors.blueAccent.withOpacity(0.1),
+                              backgroundColor: Colors.blueAccent.withValues(alpha: 0.1),
                               child: const Icon(Icons.person, color: Colors.blueAccent),
                             ),
                             title: Text(student['name']!, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
@@ -273,7 +265,7 @@ class _ActiveStudentsTabState extends State<ActiveStudentsTab> {
                                   Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                                     margin: const EdgeInsets.only(right: 12),
-                                    decoration: BoxDecoration(color: Colors.red.withOpacity(0.1), borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.red.shade200)),
+                                    decoration: BoxDecoration(color: Colors.red.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.red.shade200)),
                                     child: Text('Fine: Rs.$totalFine', style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 12)),
                                   ),
                                 Tooltip(

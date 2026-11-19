@@ -92,7 +92,7 @@ class _PreviousStudentsTabState extends State<PreviousStudentsTab> {
                 // Year Filter Dropdown (1947 to 3047)
                 Expanded(
                   child: DropdownButtonFormField<String>(
-                    value: _selectedYearFilter,
+                    initialValue: _selectedYearFilter,
                     decoration: InputDecoration(
                       labelText: 'Filter by Year',
                       filled: true,
@@ -109,7 +109,7 @@ class _PreviousStudentsTabState extends State<PreviousStudentsTab> {
                 // Class Filter Dropdown (Nursery/KG to 12)
                 Expanded(
                   child: DropdownButtonFormField<String>(
-                    value: _selectedClassFilter,
+                    initialValue: _selectedClassFilter,
                     decoration: InputDecoration(
                       labelText: 'Filter by Class',
                       filled: true,
@@ -126,7 +126,7 @@ class _PreviousStudentsTabState extends State<PreviousStudentsTab> {
                 // Section Filter Dropdown
                 Expanded(
                   child: DropdownButtonFormField<String>(
-                    value: _selectedSectionFilter,
+                    initialValue: _selectedSectionFilter,
                     decoration: InputDecoration(
                       labelText: 'Filter by Section',
                       filled: true,
@@ -178,7 +178,7 @@ class _PreviousStudentsTabState extends State<PreviousStudentsTab> {
                                 const SizedBox(width: 8),
                                 Chip(
                                   label: Text(student['exitReason'] ?? 'Left', style: const TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold, fontSize: 10)),
-                                  backgroundColor: Colors.redAccent.withOpacity(0.1),
+                                  backgroundColor: Colors.redAccent.withValues(alpha: 0.1),
                                   visualDensity: VisualDensity.compact,
                                   padding: EdgeInsets.zero,
                                 ),

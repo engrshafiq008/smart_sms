@@ -62,7 +62,7 @@ class _DashboardHomeScreenState extends State<DashboardHomeScreen> {
                         children: [
                           Expanded(
                             child: DropdownButtonFormField<String>(
-                              value: selectedClass,
+                              initialValue: selectedClass,
                               decoration: const InputDecoration(labelText: 'Assign Class', border: OutlineInputBorder()),
                               items: _classes.map((c) => DropdownMenuItem(value: c, child: Text(c == 'Nursery/KG' ? c : 'Class $c'))).toList(),
                               onChanged: (v) => setDialogState(() => selectedClass = v!),
@@ -71,7 +71,7 @@ class _DashboardHomeScreenState extends State<DashboardHomeScreen> {
                           const SizedBox(width: 12),
                           Expanded(
                             child: DropdownButtonFormField<String>(
-                              value: selectedSection,
+                              initialValue: selectedSection,
                               decoration: const InputDecoration(labelText: 'Assign Section', border: OutlineInputBorder()),
                               items: _sections.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
                               onChanged: (v) => setDialogState(() => selectedSection = v!),
@@ -84,7 +84,7 @@ class _DashboardHomeScreenState extends State<DashboardHomeScreen> {
                         children: [
                           Expanded(
                             child: DropdownButtonFormField<String>(
-                              value: gender,
+                              initialValue: gender,
                               decoration: const InputDecoration(labelText: 'Gender', border: OutlineInputBorder()),
                               items: ['Male', 'Female'].map((g) => DropdownMenuItem(value: g, child: Text(g))).toList(),
                               onChanged: (v) => setDialogState(() => gender = v!),
@@ -200,7 +200,7 @@ class _DashboardHomeScreenState extends State<DashboardHomeScreen> {
                         children: [
                           Expanded(
                             child: DropdownButtonFormField<String>(
-                              value: selectedClass,
+                              initialValue: selectedClass,
                               decoration: const InputDecoration(labelText: 'Select Class', border: OutlineInputBorder()),
                               items: _classes.map((c) => DropdownMenuItem(value: c, child: Text(c == 'Nursery/KG' ? c : 'Class $c'))).toList(),
                               onChanged: (v) => setDialogState(() => selectedClass = v!),
@@ -209,7 +209,7 @@ class _DashboardHomeScreenState extends State<DashboardHomeScreen> {
                           const SizedBox(width: 12),
                           Expanded(
                             child: DropdownButtonFormField<String>(
-                              value: selectedSection,
+                              initialValue: selectedSection,
                               decoration: const InputDecoration(labelText: 'Select Section', border: OutlineInputBorder()),
                               items: _sections.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
                               onChanged: (v) => setDialogState(() => selectedSection = v!),
@@ -221,7 +221,8 @@ class _DashboardHomeScreenState extends State<DashboardHomeScreen> {
                       
                       // Student Selection
                       DropdownButtonFormField<Map<String, String>>(
-                        value: selectedStudent,
+                        key: ValueKey(selectedStudent),
+                        initialValue: selectedStudent,
                         decoration: const InputDecoration(
                           labelText: 'Select Student', 
                           border: OutlineInputBorder(),
@@ -243,7 +244,7 @@ class _DashboardHomeScreenState extends State<DashboardHomeScreen> {
                         children: [
                           Expanded(
                             child: DropdownButtonFormField<String>(
-                              value: selectedMonth,
+                              initialValue: selectedMonth,
                               decoration: const InputDecoration(labelText: 'Billing Month', border: OutlineInputBorder()),
                               items: _months.map((m) => DropdownMenuItem(value: m, child: Text(m))).toList(),
                               onChanged: (v) => setDialogState(() => selectedMonth = v!),
@@ -252,7 +253,7 @@ class _DashboardHomeScreenState extends State<DashboardHomeScreen> {
                           const SizedBox(width: 12),
                           Expanded(
                             child: DropdownButtonFormField<String>(
-                              value: selectedYear,
+                              initialValue: selectedYear,
                               decoration: const InputDecoration(labelText: 'Billing Year', border: OutlineInputBorder()),
                               items: _getYearsList().map((y) => DropdownMenuItem(value: y, child: Text(y))).toList(),
                               onChanged: (v) => setDialogState(() => selectedYear = v!),
@@ -278,7 +279,7 @@ class _DashboardHomeScreenState extends State<DashboardHomeScreen> {
                       Container(
                         width: double.infinity,
                         padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(color: Colors.red.withOpacity(0.05), borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.red.withOpacity(0.2))),
+                        decoration: BoxDecoration(color: Colors.red.withValues(alpha: 0.05), borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.red.withValues(alpha: 0.2))),
                         child: Text('Auto Due Date: $autoDueDate (Late Fee: Rs. 100/day after this date)', style: const TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
                       ),
                     ],
@@ -463,8 +464,8 @@ class _DashboardHomeScreenState extends State<DashboardHomeScreen> {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: color.withOpacity(0.2)),
-          boxShadow: [BoxShadow(color: color.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))],
+          border: Border.all(color: color.withValues(alpha: 0.2)),
+          boxShadow: [BoxShadow(color: color.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4))],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -494,7 +495,7 @@ class _DashboardHomeScreenState extends State<DashboardHomeScreen> {
           decoration: BoxDecoration(
             color: bgColor,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: iconColor.withOpacity(0.3)),
+            border: Border.all(color: iconColor.withValues(alpha: 0.3)),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -528,7 +529,7 @@ class _DashboardHomeScreenState extends State<DashboardHomeScreen> {
             child: LinearProgressIndicator(
               value: percentage,
               minHeight: 8,
-              backgroundColor: color.withOpacity(0.1),
+              backgroundColor: color.withValues(alpha: 0.1),
               valueColor: AlwaysStoppedAnimation<Color>(color),
             ),
           ),

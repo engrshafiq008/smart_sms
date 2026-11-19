@@ -1,22 +1,29 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:hive_flutter/hive_flutter.dart'; // Hive import add kiya gaya
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'firebase_options.dart';
 import 'auth_service.dart';
+import 'school_data_service.dart';
+import 'school_signup_screen.dart';
+import 'login_screen.dart';
 import 'dashboard_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   // --- Hive Local Database Initialization ---
   await Hive.initFlutter();
-  await Hive.openBox('school_database'); // Local storage box open karein
-  
-  // --- Firebase Initialization ---
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
-  
+
+  // --- Firebase Initialization with Multi-Platform Fallback ---
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+  } catch (e) {
+    debugPrint('Firebase initialization notice: $e');
+  }
+
   runApp(const SmartSmsApp());
 }
 
@@ -26,10 +33,10 @@ class SmartSmsApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Smart SMS - SaaS',
+      title: 'Smart SMS - School Management SaaS',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blueAccent),
         useMaterial3: true,
       ),
       home: const AuthWrapper(),
@@ -44,76 +51,67 @@ class AuthWrapper extends StatelessWidget {
   Widget build(BuildContext context) {
     final AuthService authService = AuthService();
 
-    return StreamBuilder(
+    return StreamBuilder<User?>(
       stream: authService.authStateChanges,
-      builder: (context, snapshot) {
-        // Agar user login hai toh Dashboard dikhayein
-        if (snapshot.hasData) {
-          return const DashboardScreen();
+      builder: (context, authSnapshot) {
+        // If not logged in -> Show Login Screen
+        if (!authSnapshot.hasData || authSnapshot.data == null) {
+          return const LoginScreen();
         }
-        // Agar login nahi hai toh Login Screen dikhayein
-        return const LoginScreen();
+
+        final user = authSnapshot.data!;
+
+        // User is authenticated -> Check if School Profile exists
+        return FutureBuilder<Map<String, String>?>(
+          future: authService.fetchSchoolProfile(user.uid),
+          builder: (context, profileSnapshot) {
+            if (profileSnapshot.connectionState == ConnectionState.waiting) {
+              return const Scaffold(
+                backgroundColor: Color(0xFF0F172A),
+                body: Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.school, size: 64, color: Colors.blueAccent),
+                      SizedBox(height: 24),
+                      CircularProgressIndicator(color: Colors.blueAccent),
+                      SizedBox(height: 16),
+                      Text(
+                        'Connecting to School Portal...',
+                        style: TextStyle(color: Colors.white70, fontSize: 16),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }
+
+            final profile = profileSnapshot.data;
+
+            // First-time Google user without an onboarded school
+            if (profile == null) {
+              return const SchoolSignupScreen();
+            }
+
+            // Existing School Profile Found -> Initialize Multi-Tenant DB & Enter Dashboard
+            return FutureBuilder(
+              future: SchoolDataService().initForUser(user.uid, initialSettings: profile),
+              builder: (context, initSnapshot) {
+                if (initSnapshot.connectionState == ConnectionState.waiting && !SchoolDataService().isInitialized) {
+                  return const Scaffold(
+                    backgroundColor: Color(0xFF0F172A),
+                    body: Center(
+                      child: CircularProgressIndicator(color: Colors.blueAccent),
+                    ),
+                  );
+                }
+                return const DashboardScreen();
+              },
+            );
+          },
+        );
       },
     );
   }
 }
 
-class LoginScreen extends StatelessWidget {
-  const LoginScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF0F172A),
-      body: Center(
-        child: Container(
-          width: 420,
-          padding: const EdgeInsets.all(32),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: const [
-              BoxShadow(color: Colors.black26, blurRadius: 10, offset: Offset(0, 4)),
-            ],
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.school, size: 60, color: Colors.blueAccent),
-              const SizedBox(height: 16),
-              const Text(
-                'Smart SMS Enterprise',
-                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.black87),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'Desktop SaaS Edition',
-                style: TextStyle(color: Colors.black54),
-              ),
-              const SizedBox(height: 32),
-              SizedBox(
-                width: double.infinity,
-                height: 48,
-                child: ElevatedButton.icon(
-                  onPressed: () {
-                    // Direct navigation to Dashboard for uninterrupted development
-                    Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(builder: (context) => const DashboardScreen()),
-                    );
-                  },
-                  icon: const Icon(Icons.login, color: Colors.white),
-                  label: const Text('Enter Dashboard (Dev Mode)', style: TextStyle(fontSize: 16, color: Colors.white)),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blueAccent,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
