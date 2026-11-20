@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'auth_service.dart';
-import 'dashboard_screen.dart';
+import 'payment_pending_screen.dart';
 
 class SchoolSignupScreen extends StatefulWidget {
   const SchoolSignupScreen({super.key});
@@ -74,6 +74,9 @@ class _SchoolSignupScreenState extends State<SchoolSignupScreen> {
       'currency': _currency,
       'ownerUid': user.uid,
       'ownerEmail': user.email ?? _emailController.text.trim(),
+      'subscriptionStatus': 'pending_payment',
+      'planType': 'Monthly SaaS',
+      'expiryDate': '',
       'createdAt': DateTime.now().toIso8601String(),
       'updatedAt': DateTime.now().toIso8601String(),
     };
@@ -94,7 +97,13 @@ class _SchoolSignupScreenState extends State<SchoolSignupScreen> {
 
       Navigator.pushAndRemoveUntil(
         context,
-        MaterialPageRoute(builder: (context) => const DashboardScreen()),
+        MaterialPageRoute(
+          builder: (context) => PaymentPendingScreen(
+            initialProfile: Map<String, String>.from(
+              schoolProfile.map((k, v) => MapEntry(k, v.toString())),
+            ),
+          ),
+        ),
         (route) => false,
       );
     } catch (e) {

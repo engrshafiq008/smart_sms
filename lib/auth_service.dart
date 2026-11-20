@@ -92,9 +92,28 @@ class AuthService {
     await SchoolDataService().detachUser();
   }
 
-  // --- Check if School Profile Exists for UID (in Hive or Firestore) ---
+  // --- Check if School Profile Exists for UID (in Firestore or Hive) ---
   Future<Map<String, String>?> fetchSchoolProfile(String uid) async {
-    // 1. Check local Hive box first
+    // 1. Check Cloud Firestore first to get live subscriptionStatus & approval updates
+    try {
+      var doc = await FirebaseFirestore.instance.collection('schools').doc(uid).get();
+      if (doc.exists && doc.data() != null) {
+        var data = Map<String, String>.from(
+          doc.data()!.map((k, v) => MapEntry(k, v?.toString() ?? '')),
+        );
+        // Cache to local box for offline access
+        if (!Hive.isBoxOpen('school_db_$uid')) {
+          await Hive.openBox('school_db_$uid');
+        }
+        var box = Hive.box('school_db_$uid');
+        await box.put('schoolSettings', data);
+        return data;
+      }
+    } catch (e) {
+      debugPrint("Firestore fetchSchoolProfile notice (will fallback to local): $e");
+    }
+
+    // 2. Fallback to local Hive box if offline
     try {
       if (!Hive.isBoxOpen('school_db_$uid')) {
         await Hive.openBox('school_db_$uid');
@@ -104,29 +123,13 @@ class AuthService {
       if (local != null && local is Map) {
         String name = (local['schoolName'] ?? '').toString().trim();
         if (name.isNotEmpty && name != 'My School') {
-          return Map<String, String>.from(local);
+          return Map<String, String>.from(
+            local.map((k, v) => MapEntry(k.toString(), v?.toString() ?? '')),
+          );
         }
       }
     } catch (e) {
       debugPrint("Local Hive check error: $e");
-    }
-
-    // 2. Check Cloud Firestore if not found locally (e.g. new browser/machine)
-    try {
-      var doc = await FirebaseFirestore.instance.collection('schools').doc(uid).get();
-      if (doc.exists && doc.data() != null) {
-        var data = Map<String, String>.from(
-          doc.data()!.map((k, v) => MapEntry(k, v.toString())),
-        );
-        // Cache to local box for instant offline access next time
-        if (Hive.isBoxOpen('school_db_$uid')) {
-          var box = Hive.box('school_db_$uid');
-          await box.put('schoolSettings', data);
-        }
-        return data;
-      }
-    } catch (e) {
-      debugPrint("Firestore fetchSchoolProfile notice: $e");
     }
 
     return null;

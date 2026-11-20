@@ -11,6 +11,8 @@ import 'finance_screen.dart';
 import 'hr_screen.dart';
 import 'settings_screen.dart';
 import 'dashboard_home_screen.dart';
+import 'super_admin_dashboard.dart';
+import 'super_admin_login_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -40,6 +42,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   Widget build(BuildContext context) {
     final user = _authService.currentUser;
+    final bool isSuperAdmin = (user?.email ?? '').toLowerCase().trim() == kSuperAdminEmail.toLowerCase().trim();
 
     return AnimatedBuilder(
       animation: _dataService,
@@ -127,6 +130,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ),
                     ),
                     
+                    // Super Admin Switcher (Only visible to platform super admin)
+                    if (isSuperAdmin) ...[
+                      const Divider(color: Colors.white24, height: 1),
+                      ListTile(
+                        leading: const Icon(Icons.admin_panel_settings, color: Colors.amber),
+                        title: const Text('Super Admin Center', style: TextStyle(color: Colors.amber, fontWeight: FontWeight.bold)),
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => const SuperAdminDashboard()),
+                          );
+                        },
+                      ),
+                    ],
+
                     // Logout Button at bottom
                     const Divider(color: Colors.white24, height: 1),
                     ListTile(
@@ -164,6 +182,32 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           ),
                           Row(
                             children: [
+                              if (isSuperAdmin) ...[
+                                ElevatedButton.icon(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFF1E293B),
+                                    foregroundColor: Colors.amber,
+                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                    elevation: 0,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                      side: const BorderSide(color: Colors.amber, width: 1.2),
+                                    ),
+                                  ),
+                                  icon: const Icon(Icons.shield, size: 16, color: Colors.amber),
+                                  label: const Text(
+                                    'Super Admin Center',
+                                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                                  ),
+                                  onPressed: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(builder: (context) => const SuperAdminDashboard()),
+                                    );
+                                  },
+                                ),
+                                const SizedBox(width: 14),
+                              ],
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                                 decoration: BoxDecoration(

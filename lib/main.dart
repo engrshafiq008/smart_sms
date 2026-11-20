@@ -8,6 +8,8 @@ import 'school_data_service.dart';
 import 'school_signup_screen.dart';
 import 'login_screen.dart';
 import 'dashboard_screen.dart';
+import 'payment_pending_screen.dart';
+import 'super_admin_login_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -39,6 +41,15 @@ class SmartSmsApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.blueAccent),
         useMaterial3: true,
       ),
+      routes: {
+        '/admin': (context) => const SuperAdminLoginScreen(),
+      },
+      onGenerateRoute: (settings) {
+        if (settings.name == '/admin') {
+          return MaterialPageRoute(builder: (context) => const SuperAdminLoginScreen());
+        }
+        return null;
+      },
       home: const AuthWrapper(),
     );
   }
@@ -60,6 +71,7 @@ class AuthWrapper extends StatelessWidget {
         }
 
         final user = authSnapshot.data!;
+        final bool isSuperAdmin = (user.email ?? '').toLowerCase().trim() == kSuperAdminEmail.toLowerCase().trim();
 
         // User is authenticated -> Check if School Profile exists
         return FutureBuilder<Map<String, String>?>(
@@ -88,30 +100,74 @@ class AuthWrapper extends StatelessWidget {
 
             final profile = profileSnapshot.data;
 
-            // First-time Google user without an onboarded school
+            // First-time user without an onboarded school
             if (profile == null) {
+              // If Super Admin logs in without a school profile, auto-initialize demo school and open School Dashboard with Super Admin toggle
+              if (isSuperAdmin) {
+                return FutureBuilder(
+                  future: SchoolDataService().initForUser(
+                    user.uid,
+                    initialSettings: {
+                      'schoolName': 'Smart SMS Model School',
+                      'address': 'Smart Campus, Main Boulevard',
+                      'phone': '03336387744',
+                      'email': user.email ?? '',
+                      'subscriptionStatus': 'active',
+                      'planType': 'Lifetime License',
+                    },
+                  ),
+                  builder: (context, initSnapshot) {
+                    if (initSnapshot.connectionState == ConnectionState.waiting && !SchoolDataService().isInitialized) {
+                      return const Scaffold(
+                        backgroundColor: Color(0xFF0F172A),
+                        body: Center(
+                          child: CircularProgressIndicator(color: Colors.blueAccent),
+                        ),
+                      );
+                    }
+                    return const DashboardScreen();
+                  },
+                );
+              }
               return const SchoolSignupScreen();
             }
 
-            // Existing School Profile Found -> Initialize Multi-Tenant DB & Enter Dashboard
-            return FutureBuilder(
-              future: SchoolDataService().initForUser(user.uid, initialSettings: profile),
-              builder: (context, initSnapshot) {
-                if (initSnapshot.connectionState == ConnectionState.waiting && !SchoolDataService().isInitialized) {
-                  return const Scaffold(
-                    backgroundColor: Color(0xFF0F172A),
-                    body: Center(
-                      child: CircularProgressIndicator(color: Colors.blueAccent),
-                    ),
-                  );
-                }
-                return const DashboardScreen();
-              },
-            );
+            // Existing School Profile Found -> Check Subscription Status & Validity
+            final status = (profile['subscriptionStatus'] ?? (isSuperAdmin ? 'active' : 'pending_payment')).toLowerCase();
+            final expiry = profile['expiryDate'];
+            bool isExpired = false;
+            if (!isSuperAdmin && expiry != null && expiry.isNotEmpty && expiry != 'lifetime') {
+              final exp = DateTime.tryParse(expiry);
+              if (exp != null && exp.isBefore(DateTime.now())) {
+                isExpired = true;
+              }
+            }
+
+            // If subscription is approved and active (or Super Admin) -> Enter Main Dashboard
+            if ((status == 'active' || isSuperAdmin) && !isExpired) {
+              return FutureBuilder(
+                future: SchoolDataService().initForUser(user.uid, initialSettings: profile),
+                builder: (context, initSnapshot) {
+                  if (initSnapshot.connectionState == ConnectionState.waiting && !SchoolDataService().isInitialized) {
+                    return const Scaffold(
+                      backgroundColor: Color(0xFF0F172A),
+                      body: Center(
+                        child: CircularProgressIndicator(color: Colors.blueAccent),
+                      ),
+                    );
+                  }
+                  return const DashboardScreen();
+                },
+              );
+            }
+
+            // Otherwise, route to Payment Verification & Pending Approval Screen
+            return PaymentPendingScreen(initialProfile: profile);
           },
         );
       },
     );
   }
 }
+
 

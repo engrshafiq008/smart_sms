@@ -815,6 +815,47 @@ class SchoolDataService extends ChangeNotifier {
     _deleteFirestoreDoc('fee_vouchers', voucherNo);
   }
 
+  Future<void> markFeeReminderSent(String voucherNo) async {
+    int index = feeVouchers.indexWhere((v) => v['voucherNo'] == voucherNo);
+    if (index != -1) {
+      feeVouchers[index]['lastReminderSentAt'] = DateTime.now().toIso8601String();
+      _saveData('feeVouchers', feeVouchers);
+      _setFirestoreDoc('fee_vouchers', voucherNo, feeVouchers[index]);
+      notifyListeners();
+    }
+  }
+
+  Duration? getRemainingReminderCooldown(Map<String, dynamic> voucher) {
+    final lastSentStr = voucher['lastReminderSentAt']?.toString();
+    if (lastSentStr == null || lastSentStr.isEmpty) return null;
+    final sentAt = DateTime.tryParse(lastSentStr);
+    if (sentAt == null) return null;
+
+    final elapsed = DateTime.now().difference(sentAt);
+    if (elapsed >= const Duration(hours: 24)) return null;
+    return const Duration(hours: 24) - elapsed;
+  }
+
+  String getStudentPhone(String regNo) {
+    for (var s in activeStudents) {
+      if (s['regNo'] == regNo) return s['phone'] ?? '';
+    }
+    for (var s in previousStudents) {
+      if (s['regNo'] == regNo) return s['phone'] ?? '';
+    }
+    return '';
+  }
+
+  String getStudentFatherName(String regNo) {
+    for (var s in activeStudents) {
+      if (s['regNo'] == regNo) return s['father'] ?? '';
+    }
+    for (var s in previousStudents) {
+      if (s['regNo'] == regNo) return s['father'] ?? '';
+    }
+    return '';
+  }
+
   // ==========================================
   // STUDENT ATTENDANCE METHODS
   // ==========================================

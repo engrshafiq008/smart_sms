@@ -3,6 +3,8 @@ import 'auth_service.dart';
 import 'school_data_service.dart';
 import 'school_signup_screen.dart';
 import 'dashboard_screen.dart';
+import 'payment_pending_screen.dart';
+import 'super_admin_login_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -28,6 +30,34 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
+  Future<void> _routeUserWithProfile(String uid, Map<String, String> profile) async {
+    final status = (profile['subscriptionStatus'] ?? 'pending_payment').toLowerCase();
+    final expiry = profile['expiryDate'];
+    bool isExpired = false;
+    if (expiry != null && expiry.isNotEmpty && expiry != 'lifetime') {
+      final exp = DateTime.tryParse(expiry);
+      if (exp != null && exp.isBefore(DateTime.now())) {
+        isExpired = true;
+      }
+    }
+
+    if (status == 'active' && !isExpired) {
+      await SchoolDataService().initForUser(uid, initialSettings: profile);
+      if (!mounted) return;
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (context) => const DashboardScreen()),
+        (route) => false,
+      );
+    } else {
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (context) => PaymentPendingScreen(initialProfile: profile)),
+        (route) => false,
+      );
+    }
+  }
+
   // --- 1. Login with Google (Existing School Owners) ---
   Future<void> _handleGoogleLogin() async {
     setState(() => _isLoadingGoogleLogin = true);
@@ -38,13 +68,7 @@ class _LoginScreenState extends State<LoginScreen> {
         if (!mounted) return;
 
         if (profile != null) {
-          await SchoolDataService().initForUser(user.uid, initialSettings: profile);
-          if (!mounted) return;
-          Navigator.pushAndRemoveUntil(
-            context,
-            MaterialPageRoute(builder: (context) => const DashboardScreen()),
-            (route) => false,
-          );
+          await _routeUserWithProfile(user.uid, profile);
         } else {
           // If first-time user clicks login, forward to onboarding
           Navigator.pushAndRemoveUntil(
@@ -82,13 +106,7 @@ class _LoginScreenState extends State<LoginScreen> {
               backgroundColor: Colors.green,
             ),
           );
-          await SchoolDataService().initForUser(user.uid, initialSettings: profile);
-          if (!mounted) return;
-          Navigator.pushAndRemoveUntil(
-            context,
-            MaterialPageRoute(builder: (context) => const DashboardScreen()),
-            (route) => false,
-          );
+          await _routeUserWithProfile(user.uid, profile);
         } else {
           // New School Owner -> Navigate directly to Onboarding
           Navigator.pushAndRemoveUntil(
@@ -125,13 +143,7 @@ class _LoginScreenState extends State<LoginScreen> {
         if (!mounted) return;
 
         if (profile != null) {
-          await SchoolDataService().initForUser(user.uid, initialSettings: profile);
-          if (!mounted) return;
-          Navigator.pushAndRemoveUntil(
-            context,
-            MaterialPageRoute(builder: (context) => const DashboardScreen()),
-            (route) => false,
-          );
+          await _routeUserWithProfile(user.uid, profile);
         } else {
           Navigator.pushAndRemoveUntil(
             context,
@@ -318,6 +330,41 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                 ],
+
+                const SizedBox(height: 24),
+                const Divider(color: Colors.black12),
+                const SizedBox(height: 12),
+
+                // Subtle Super Admin Portal Link
+                InkWell(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const SuperAdminLoginScreen()),
+                    );
+                  },
+                  borderRadius: BorderRadius.circular(6),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.shield_outlined, size: 15, color: Colors.grey.shade500),
+                        const SizedBox(width: 6),
+                        Text(
+                          'Super Admin Login',
+                          style: TextStyle(
+                            color: Colors.grey.shade600,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            decoration: TextDecoration.underline,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
