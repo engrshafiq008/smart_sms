@@ -27,7 +27,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     {'title': 'Academic Prefs', 'icon': Icons.settings_applications, 'color': Colors.teal},
     {'title': 'SaaS Subscription', 'icon': Icons.cloud_done, 'color': Colors.indigo},
     {'title': 'Database & Backup', 'icon': Icons.storage, 'color': Colors.orange},
-    {'title': 'Security & Access', 'icon': Icons.security, 'color': Colors.redAccent},
   ];
 
   @override
@@ -189,7 +188,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                   ),
                   selected: isSelected,
-                  selectedTileColor: item['color'].withOpacity(0.05),
+                  selectedTileColor: item['color'].withValues(alpha: 0.05),
                   onTap: () => setState(() => _selectedMenuIndex = index),
                 );
               },
@@ -224,8 +223,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
         return _buildSaaSSubscription();
       case 3:
         return _buildDatabaseBackup();
-      case 4:
-        return _buildSecurityAccess();
       default:
         return const Center(child: Text('Select a setting menu'));
     }
@@ -471,35 +468,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
         ],
       ),
-    );
-  }
-
-  // --- 5. Security & Access ---
-  Widget _buildSecurityAccess() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text('Security & Administrator Access', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-        const SizedBox(height: 32),
-        const TextField(
-          obscureText: true,
-          decoration: InputDecoration(labelText: 'Current Master Password', border: OutlineInputBorder(), prefixIcon: Icon(Icons.lock_outline)),
-        ),
-        const SizedBox(height: 20),
-        const TextField(
-          obscureText: true,
-          decoration: InputDecoration(labelText: 'New Password', border: OutlineInputBorder(), prefixIcon: Icon(Icons.lock)),
-        ),
-        const SizedBox(height: 32),
-        ElevatedButton.icon(
-          onPressed: () {
-            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Security credentials updated.'), backgroundColor: Colors.green));
-          },
-          icon: const Icon(Icons.security, color: Colors.white),
-          label: const Text('Update Credentials', style: TextStyle(color: Colors.white)),
-          style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent, padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16)),
-        ),
-      ],
     );
   }
 }

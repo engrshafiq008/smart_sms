@@ -25,6 +25,8 @@ class _FinanceScreenState extends State<FinanceScreen> with SingleTickerProvider
   // Filters for Vouchers Record
   String _voucherYearFilter = 'All Years';
   String _voucherMonthFilter = 'All Months';
+  String _voucherClassFilter = 'All Classes';
+  String _voucherSectionFilter = 'All Sections';
   String _voucherStatusFilter = 'All';
   final TextEditingController _voucherSearchCtrl = TextEditingController();
   String _voucherSearchQuery = '';
@@ -34,8 +36,10 @@ class _FinanceScreenState extends State<FinanceScreen> with SingleTickerProvider
   String _summaryMonthFilter = 'All Months';
 
   // Filters for Pending Fee List
-  String _pendingClassFilter = 'All Classes';
+  String _pendingYearFilter = 'All Years';
   String _pendingMonthFilter = 'All Months';
+  String _pendingClassFilter = 'All Classes';
+  String _pendingSectionFilter = 'All Sections';
   final TextEditingController _pendingSearchCtrl = TextEditingController();
   String _pendingSearchQuery = '';
 
@@ -44,17 +48,108 @@ class _FinanceScreenState extends State<FinanceScreen> with SingleTickerProvider
   final List<String> _months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
   final List<String> _voucherStatuses = ['All', 'Paid', 'Unpaid'];
 
+  // Shared 2020-2120 Year Range
+  final List<String> _sharedYearsList = [
+    'All Years',
+    ...List.generate(101, (i) => '${2020 + i}'),
+  ];
+
   List<String> _getYearsList() {
-    List<String> years = [];
-    for (int i = 2024; i <= 2040; i++) {
-      years.add(i.toString());
-    }
-    return years;
+    return List.generate(101, (i) => '${2020 + i}');
   }
 
   String _getMonthNumber(String monthName) {
     int index = _months.indexOf(monthName) + 1;
     return index.toString().padLeft(2, '0');
+  }
+
+  // --- Normalization & Extraction Helpers for Class and Section ---
+  String _normalizeClass(String c) => c.replaceAll('Class ', '').trim();
+  String _normalizeSection(String s) => s.replaceAll('Section ', '').trim();
+
+  String _getVoucherClass(Map<String, dynamic> v) {
+    String c = (v['className'] ?? '').toString().trim();
+    if (c.isEmpty) {
+      String regNo = (v['regNo'] ?? '').toString();
+      for (var s in _dataService.activeStudents) {
+        if (s['regNo'] == regNo) {
+          c = s['class'] ?? '';
+          break;
+        }
+      }
+      if (c.isEmpty) {
+        for (var s in _dataService.previousStudents) {
+          if (s['regNo'] == regNo) {
+            c = s['class'] ?? '';
+            break;
+          }
+        }
+      }
+    }
+    return _normalizeClass(c);
+  }
+
+  String _getVoucherSection(Map<String, dynamic> v) {
+    String s = (v['section'] ?? '').toString().trim();
+    if (s.isEmpty) {
+      String regNo = (v['regNo'] ?? '').toString();
+      for (var stu in _dataService.activeStudents) {
+        if (stu['regNo'] == regNo) {
+          s = stu['section'] ?? '';
+          break;
+        }
+      }
+      if (s.isEmpty) {
+        for (var stu in _dataService.previousStudents) {
+          if (stu['regNo'] == regNo) {
+            s = stu['section'] ?? '';
+            break;
+          }
+        }
+      }
+    }
+    return _normalizeSection(s);
+  }
+
+  List<String> _getAvailableClasses() {
+    final Set<String> classSet = {'Nursery/KG', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'};
+    for (var s in _dataService.activeStudents) {
+      final c = _normalizeClass(s['class'] ?? '');
+      if (c.isNotEmpty) classSet.add(c);
+    }
+    for (var v in _dataService.feeVouchers) {
+      final c = _normalizeClass((v['className'] ?? '').toString());
+      if (c.isNotEmpty) classSet.add(c);
+    }
+    final List<String> sorted = classSet.toList()..sort((a, b) {
+      int? numA = int.tryParse(a);
+      int? numB = int.tryParse(b);
+      if (a == 'Nursery/KG') return -1;
+      if (b == 'Nursery/KG') return 1;
+      if (numA != null && numB != null) return numA.compareTo(numB);
+      if (numA != null) return -1;
+      if (numB != null) return 1;
+      return a.compareTo(b);
+    });
+    return ['All Classes', ...sorted];
+  }
+
+  List<String> _getAvailableSections() {
+    final Set<String> secSet = {'Section A', 'Section B', 'Section C', 'Section D'};
+    for (var s in _dataService.activeStudents) {
+      final sec = (s['section'] ?? '').toString().trim();
+      if (sec.isNotEmpty) {
+        secSet.add(sec.startsWith('Section ') ? sec : 'Section $sec');
+      }
+    }
+    for (var v in _dataService.feeVouchers) {
+      final sec = (v['section'] ?? '').toString().trim();
+      if (sec.isNotEmpty) {
+        secSet.add(sec.startsWith('Section ') ? sec : 'Section $sec');
+      }
+    }
+    final list = secSet.toList()..sort();
+    return ['All Sections', ...list];
   }
 
   // --- Reliable Month & Year Extractors for Vouchers ---
@@ -117,20 +212,7 @@ class _FinanceScreenState extends State<FinanceScreen> with SingleTickerProvider
   }
 
   List<String> _getAvailableVoucherYears() {
-    final Set<String> yearSet = {
-      '2025',
-      '2026',
-      '2027',
-      DateTime.now().year.toString(),
-    };
-    for (var v in _dataService.feeVouchers) {
-      final y = _getVoucherYear(v);
-      if (y.isNotEmpty && y != 'Unknown') {
-        yearSet.add(y);
-      }
-    }
-    final sortedYears = yearSet.toList()..sort((a, b) => b.compareTo(a));
-    return ['All Years', ...sortedYears];
+    return _sharedYearsList;
   }
 
   // --- Dynamic Late Fee Calculator ---
@@ -501,7 +583,9 @@ class _FinanceScreenState extends State<FinanceScreen> with SingleTickerProvider
             children: [
               Expanded(
                 child: DropdownButtonFormField<String>(
+                  key: ValueKey('fee_gen_year_$_selectedYear'),
                   initialValue: _selectedYear,
+                  menuMaxHeight: 320,
                   decoration: const InputDecoration(labelText: 'Year', border: OutlineInputBorder()),
                   items: _getYearsList().map((y) => DropdownMenuItem(value: y, child: Text(y))).toList(),
                   onChanged: (v) => setState(() => _selectedYear = v!),
@@ -633,8 +717,12 @@ class _FinanceScreenState extends State<FinanceScreen> with SingleTickerProvider
 
   // --- TAB 2: Vouchers Record ---
   Widget _buildVouchersRecordTab() {
-    final availableYears = _getAvailableVoucherYears();
+    final availableYears = _sharedYearsList;
     final currentYearFilter = availableYears.contains(_voucherYearFilter) ? _voucherYearFilter : 'All Years';
+    final availableClasses = _getAvailableClasses();
+    final currentClassFilter = availableClasses.contains(_voucherClassFilter) ? _voucherClassFilter : 'All Classes';
+    final availableSections = _getAvailableSections();
+    final currentSectionFilter = availableSections.contains(_voucherSectionFilter) ? _voucherSectionFilter : 'All Sections';
 
     final filteredVouchers = _dataService.feeVouchers.where((v) {
       // 1. Status Filter
@@ -654,7 +742,21 @@ class _FinanceScreenState extends State<FinanceScreen> with SingleTickerProvider
         if (vMonth.toLowerCase() != _voucherMonthFilter.toLowerCase()) return false;
       }
 
-      // 4. Search Filter
+      // 4. Class Filter
+      if (currentClassFilter != 'All Classes') {
+        final vClass = _getVoucherClass(v);
+        final targetClass = _normalizeClass(currentClassFilter);
+        if (vClass.toLowerCase() != targetClass.toLowerCase()) return false;
+      }
+
+      // 5. Section Filter
+      if (currentSectionFilter != 'All Sections') {
+        final vSec = _getVoucherSection(v);
+        final targetSec = _normalizeSection(currentSectionFilter);
+        if (vSec.toLowerCase() != targetSec.toLowerCase()) return false;
+      }
+
+      // 6. Search Filter
       if (_voucherSearchQuery.isNotEmpty) {
         final q = _voucherSearchQuery.toLowerCase();
         final name = (v['studentName'] ?? '').toString().toLowerCase();
@@ -687,6 +789,8 @@ class _FinanceScreenState extends State<FinanceScreen> with SingleTickerProvider
 
     final bool isFilterActive = currentYearFilter != 'All Years' ||
         _voucherMonthFilter != 'All Months' ||
+        currentClassFilter != 'All Classes' ||
+        currentSectionFilter != 'All Sections' ||
         _voucherStatusFilter != 'All' ||
         _voucherSearchQuery.isNotEmpty;
 
@@ -722,7 +826,7 @@ class _FinanceScreenState extends State<FinanceScreen> with SingleTickerProvider
                 children: [
                   // Search Field
                   SizedBox(
-                    width: 220,
+                    width: 200,
                     child: TextField(
                       controller: _voucherSearchCtrl,
                       decoration: InputDecoration(
@@ -750,10 +854,11 @@ class _FinanceScreenState extends State<FinanceScreen> with SingleTickerProvider
 
                   // Year Dropdown
                   SizedBox(
-                    width: 130,
+                    width: 120,
                     child: DropdownButtonFormField<String>(
                       key: ValueKey('voucher_year_filter_$currentYearFilter'),
                       initialValue: currentYearFilter,
+                      menuMaxHeight: 320,
                       decoration: const InputDecoration(
                         labelText: 'Year',
                         border: OutlineInputBorder(),
@@ -767,7 +872,7 @@ class _FinanceScreenState extends State<FinanceScreen> with SingleTickerProvider
 
                   // Month Dropdown
                   SizedBox(
-                    width: 140,
+                    width: 130,
                     child: DropdownButtonFormField<String>(
                       key: ValueKey('voucher_month_filter_$_voucherMonthFilter'),
                       initialValue: _voucherMonthFilter,
@@ -782,9 +887,43 @@ class _FinanceScreenState extends State<FinanceScreen> with SingleTickerProvider
                     ),
                   ),
 
+                  // Class Dropdown
+                  SizedBox(
+                    width: 130,
+                    child: DropdownButtonFormField<String>(
+                      key: ValueKey('voucher_class_filter_$currentClassFilter'),
+                      initialValue: currentClassFilter,
+                      decoration: const InputDecoration(
+                        labelText: 'Class',
+                        border: OutlineInputBorder(),
+                        isDense: true,
+                        contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                      ),
+                      items: availableClasses.map((c) => DropdownMenuItem(value: c, child: Text(c == 'All Classes' || c == 'Nursery/KG' ? c : 'Class $c', style: const TextStyle(fontSize: 13)))).toList(),
+                      onChanged: (v) => setState(() => _voucherClassFilter = v ?? 'All Classes'),
+                    ),
+                  ),
+
+                  // Section Dropdown
+                  SizedBox(
+                    width: 130,
+                    child: DropdownButtonFormField<String>(
+                      key: ValueKey('voucher_section_filter_$currentSectionFilter'),
+                      initialValue: currentSectionFilter,
+                      decoration: const InputDecoration(
+                        labelText: 'Section',
+                        border: OutlineInputBorder(),
+                        isDense: true,
+                        contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                      ),
+                      items: availableSections.map((s) => DropdownMenuItem(value: s, child: Text(s, style: const TextStyle(fontSize: 13)))).toList(),
+                      onChanged: (v) => setState(() => _voucherSectionFilter = v ?? 'All Sections'),
+                    ),
+                  ),
+
                   // Status Dropdown
                   SizedBox(
-                    width: 120,
+                    width: 110,
                     child: DropdownButtonFormField<String>(
                       key: ValueKey('voucher_status_filter_$_voucherStatusFilter'),
                       initialValue: _voucherStatusFilter,
@@ -806,6 +945,8 @@ class _FinanceScreenState extends State<FinanceScreen> with SingleTickerProvider
                         setState(() {
                           _voucherYearFilter = 'All Years';
                           _voucherMonthFilter = 'All Months';
+                          _voucherClassFilter = 'All Classes';
+                          _voucherSectionFilter = 'All Sections';
                           _voucherStatusFilter = 'All';
                           _voucherSearchCtrl.clear();
                           _voucherSearchQuery = '';
@@ -1190,6 +1331,7 @@ class _FinanceScreenState extends State<FinanceScreen> with SingleTickerProvider
                       child: DropdownButtonFormField<String>(
                         key: ValueKey('summary_year_$currentSummaryYear'),
                         initialValue: currentSummaryYear,
+                        menuMaxHeight: 320,
                         decoration: const InputDecoration(
                           labelText: 'Year',
                           border: OutlineInputBorder(),
@@ -1467,21 +1609,45 @@ class _FinanceScreenState extends State<FinanceScreen> with SingleTickerProvider
   // TAB 3: PENDING FEE LIST & WHATSAPP COOLDOWN
   // ==========================================
   Widget _buildPendingFeeListTab() {
+    final availableClasses = _getAvailableClasses();
+    final currentPendingClass = availableClasses.contains(_pendingClassFilter) ? _pendingClassFilter : 'All Classes';
+
+    final availableSections = _getAvailableSections();
+    final currentPendingSection = availableSections.contains(_pendingSectionFilter) ? _pendingSectionFilter : 'All Sections';
+
+    final currentPendingYear = _sharedYearsList.contains(_pendingYearFilter) ? _pendingYearFilter : 'All Years';
+
     // 1. Filter vouchers (only unpaid/pending)
     final pendingVouchers = _dataService.feeVouchers.where((v) {
       if (v['status'] == 'Paid') return false;
 
-      if (_pendingClassFilter != 'All Classes') {
-        String cleanClass = (v['className'] ?? '').toString().replaceAll('Class ', '').trim();
-        String targetClass = _pendingClassFilter.replaceAll('Class ', '').trim();
-        if (cleanClass != targetClass) return false;
+      // Year Filter
+      if (currentPendingYear != 'All Years') {
+        final vYear = _getVoucherYear(v);
+        if (vYear != currentPendingYear) return false;
       }
 
+      // Month Filter
       if (_pendingMonthFilter != 'All Months') {
-        String monthStr = (v['month'] ?? '').toString();
-        if (!monthStr.contains(_pendingMonthFilter)) return false;
+        final vMonth = _getVoucherMonth(v);
+        if (vMonth.toLowerCase() != _pendingMonthFilter.toLowerCase()) return false;
       }
 
+      // Class Filter
+      if (currentPendingClass != 'All Classes') {
+        final vClass = _getVoucherClass(v);
+        final targetClass = _normalizeClass(currentPendingClass);
+        if (vClass.toLowerCase() != targetClass.toLowerCase()) return false;
+      }
+
+      // Section Filter
+      if (currentPendingSection != 'All Sections') {
+        final vSec = _getVoucherSection(v);
+        final targetSec = _normalizeSection(currentPendingSection);
+        if (vSec.toLowerCase() != targetSec.toLowerCase()) return false;
+      }
+
+      // Search Bar
       if (_pendingSearchQuery.isNotEmpty) {
         String name = (v['studentName'] ?? '').toString().toLowerCase();
         String regNo = (v['regNo'] ?? '').toString().toLowerCase();
@@ -1501,6 +1667,8 @@ class _FinanceScreenState extends State<FinanceScreen> with SingleTickerProvider
     double totalDue = 0;
     int remindedCount = 0;
     int unremindedCount = 0;
+    int defaulters30Count = 0;
+    DateTime now = DateTime.now();
 
     for (var v in pendingVouchers) {
       int lateFee = _calculateLateFee(v['dueDate'] ?? '', v['status'] ?? '');
@@ -1513,7 +1681,21 @@ class _FinanceScreenState extends State<FinanceScreen> with SingleTickerProvider
       } else {
         unremindedCount++;
       }
+
+      final dueStr = v['dueDate']?.toString();
+      if (dueStr != null && dueStr.isNotEmpty) {
+        final dueDate = DateTime.tryParse(dueStr);
+        if (dueDate != null && now.difference(dueDate).inDays > 30) {
+          defaulters30Count++;
+        }
+      }
     }
+
+    final bool isPendingFilterActive = currentPendingYear != 'All Years' ||
+        _pendingMonthFilter != 'All Months' ||
+        currentPendingClass != 'All Classes' ||
+        currentPendingSection != 'All Sections' ||
+        _pendingSearchQuery.isNotEmpty;
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -1552,44 +1734,24 @@ class _FinanceScreenState extends State<FinanceScreen> with SingleTickerProvider
           ),
           const SizedBox(height: 16),
 
-          // Filters Row
-          Row(
+          // Filters Row (Responsive Wrap)
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: [
-              // Class Filter
-              Expanded(
-                flex: 2,
-                child: DropdownButtonFormField<String>(
-                  initialValue: _pendingClassFilter,
-                  decoration: const InputDecoration(labelText: 'Filter Class', border: OutlineInputBorder(), isDense: true),
-                  items: _grades.map((g) => DropdownMenuItem(value: g, child: Text(g))).toList(),
-                  onChanged: (val) => setState(() => _pendingClassFilter = val!),
-                ),
-              ),
-              const SizedBox(width: 12),
-
-              // Month Filter
-              Expanded(
-                flex: 2,
-                child: DropdownButtonFormField<String>(
-                  initialValue: _pendingMonthFilter,
-                  decoration: const InputDecoration(labelText: 'Filter Month', border: OutlineInputBorder(), isDense: true),
-                  items: ['All Months', ..._months].map((m) => DropdownMenuItem(value: m, child: Text(m))).toList(),
-                  onChanged: (val) => setState(() => _pendingMonthFilter = val!),
-                ),
-              ),
-              const SizedBox(width: 12),
-
               // Search Bar
-              Expanded(
-                flex: 3,
+              SizedBox(
+                width: 210,
                 child: TextField(
                   controller: _pendingSearchCtrl,
                   decoration: InputDecoration(
-                    labelText: 'Search by Student Name, Reg No, or Phone',
-                    prefixIcon: const Icon(Icons.search),
+                    labelText: 'Search Pending',
+                    hintText: 'Name, Reg No, or Phone',
+                    prefixIcon: const Icon(Icons.search, size: 18),
                     suffixIcon: _pendingSearchQuery.isNotEmpty
                         ? IconButton(
-                            icon: const Icon(Icons.clear, size: 18),
+                            icon: const Icon(Icons.clear, size: 16),
                             onPressed: () {
                               _pendingSearchCtrl.clear();
                               setState(() => _pendingSearchQuery = '');
@@ -1598,10 +1760,81 @@ class _FinanceScreenState extends State<FinanceScreen> with SingleTickerProvider
                         : null,
                     border: const OutlineInputBorder(),
                     isDense: true,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
                   ),
                   onChanged: (val) => setState(() => _pendingSearchQuery = val.trim().toLowerCase()),
                 ),
               ),
+
+              // Year Filter
+              SizedBox(
+                width: 120,
+                child: DropdownButtonFormField<String>(
+                  key: ValueKey('pending_year_filter_$currentPendingYear'),
+                  initialValue: currentPendingYear,
+                  menuMaxHeight: 320,
+                  decoration: const InputDecoration(labelText: 'Year', border: OutlineInputBorder(), isDense: true, contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 10)),
+                  items: _sharedYearsList.map((y) => DropdownMenuItem(value: y, child: Text(y, style: const TextStyle(fontSize: 13)))).toList(),
+                  onChanged: (val) => setState(() => _pendingYearFilter = val ?? 'All Years'),
+                ),
+              ),
+
+              // Month Filter
+              SizedBox(
+                width: 130,
+                child: DropdownButtonFormField<String>(
+                  key: ValueKey('pending_month_filter_$_pendingMonthFilter'),
+                  initialValue: _pendingMonthFilter,
+                  decoration: const InputDecoration(labelText: 'Month', border: OutlineInputBorder(), isDense: true, contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 10)),
+                  items: ['All Months', ..._months].map((m) => DropdownMenuItem(value: m, child: Text(m, style: const TextStyle(fontSize: 13)))).toList(),
+                  onChanged: (val) => setState(() => _pendingMonthFilter = val ?? 'All Months'),
+                ),
+              ),
+
+              // Class Filter
+              SizedBox(
+                width: 130,
+                child: DropdownButtonFormField<String>(
+                  key: ValueKey('pending_class_filter_$currentPendingClass'),
+                  initialValue: currentPendingClass,
+                  decoration: const InputDecoration(labelText: 'Class', border: OutlineInputBorder(), isDense: true, contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 10)),
+                  items: availableClasses.map((c) => DropdownMenuItem(value: c, child: Text(c == 'All Classes' || c == 'Nursery/KG' ? c : 'Class $c', style: const TextStyle(fontSize: 13)))).toList(),
+                  onChanged: (val) => setState(() => _pendingClassFilter = val ?? 'All Classes'),
+                ),
+              ),
+
+              // Section Filter
+              SizedBox(
+                width: 130,
+                child: DropdownButtonFormField<String>(
+                  key: ValueKey('pending_section_filter_$currentPendingSection'),
+                  initialValue: currentPendingSection,
+                  decoration: const InputDecoration(labelText: 'Section', border: OutlineInputBorder(), isDense: true, contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 10)),
+                  items: availableSections.map((s) => DropdownMenuItem(value: s, child: Text(s, style: const TextStyle(fontSize: 13)))).toList(),
+                  onChanged: (val) => setState(() => _pendingSectionFilter = val ?? 'All Sections'),
+                ),
+              ),
+
+              // Reset Filters Button
+              if (isPendingFilterActive)
+                OutlinedButton.icon(
+                  onPressed: () {
+                    setState(() {
+                      _pendingYearFilter = 'All Years';
+                      _pendingMonthFilter = 'All Months';
+                      _pendingClassFilter = 'All Classes';
+                      _pendingSectionFilter = 'All Sections';
+                      _pendingSearchCtrl.clear();
+                      _pendingSearchQuery = '';
+                    });
+                  },
+                  icon: const Icon(Icons.filter_alt_off, size: 16, color: Colors.redAccent),
+                  label: const Text('Reset', style: TextStyle(color: Colors.redAccent, fontSize: 12, fontWeight: FontWeight.bold)),
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: Colors.redAccent),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  ),
+                ),
             ],
           ),
           const SizedBox(height: 16),
@@ -1614,15 +1847,17 @@ class _FinanceScreenState extends State<FinanceScreen> with SingleTickerProvider
               borderRadius: BorderRadius.circular(10),
               border: Border.all(color: Colors.grey.shade200),
             ),
-            child: Row(
+            child: Wrap(
+              alignment: WrapAlignment.spaceAround,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: 16,
+              runSpacing: 10,
               children: [
-                Expanded(child: _buildMiniStat('Pending Students', '$totalPending Students', Icons.groups, Colors.redAccent)),
-                Container(height: 32, width: 1, color: Colors.grey.shade300),
-                Expanded(child: _buildMiniStat('Total Pending Dues', 'Rs. ${totalDue.toStringAsFixed(0)}', Icons.payments, Colors.red.shade700)),
-                Container(height: 32, width: 1, color: Colors.grey.shade300),
-                Expanded(child: _buildMiniStat('Reminded (24h)', '$remindedCount Sent', Icons.check_circle, Colors.green)),
-                Container(height: 32, width: 1, color: Colors.grey.shade300),
-                Expanded(child: _buildMiniStat('Remaining to Alert', '$unremindedCount Left', Icons.schedule, Colors.orange)),
+                _buildMiniStat('Pending Students', '$totalPending Students', Icons.groups, Colors.redAccent),
+                _buildMiniStat('Defaulters (>30 Days)', '$defaulters30Count Defaulters', Icons.warning_amber_rounded, Colors.deepOrange),
+                _buildMiniStat('Total Pending Dues', 'Rs. ${totalDue.toStringAsFixed(0)}', Icons.payments, Colors.red.shade700),
+                _buildMiniStat('Reminded (24h)', '$remindedCount Sent', Icons.check_circle, Colors.green),
+                _buildMiniStat('Remaining to Alert', '$unremindedCount Left', Icons.schedule, Colors.orange),
               ],
             ),
           ),
@@ -1652,8 +1887,8 @@ class _FinanceScreenState extends State<FinanceScreen> with SingleTickerProvider
                       final regNo = v['regNo']?.toString() ?? '';
                       final studentName = v['studentName']?.toString() ?? '';
                       final fatherName = _dataService.getStudentFatherName(regNo);
-                      final className = (v['className']?.toString() ?? '').replaceAll('Class ', '').trim();
-                      final sec = v['section']?.toString() ?? '';
+                      final className = _getVoucherClass(v);
+                      final sec = _getVoucherSection(v);
                       final studentPhone = _dataService.getStudentPhone(regNo);
                       final month = v['month']?.toString() ?? '';
 
@@ -1861,8 +2096,8 @@ class _FinanceScreenState extends State<FinanceScreen> with SingleTickerProvider
       final regNo = v['regNo']?.toString() ?? '';
       final studentName = v['studentName']?.toString() ?? '';
       final fatherName = _dataService.getStudentFatherName(regNo);
-      final className = (v['className']?.toString() ?? '').replaceAll('Class ', '').trim();
-      final sec = v['section']?.toString() ?? '';
+      final className = _getVoucherClass(v);
+      final sec = _getVoucherSection(v);
       final studentPhone = _dataService.getStudentPhone(regNo);
       final month = v['month']?.toString() ?? '';
       int lateFee = _calculateLateFee(v['dueDate'] ?? '', v['status'] ?? '');
@@ -1923,9 +2158,14 @@ class _FinanceScreenState extends State<FinanceScreen> with SingleTickerProvider
                       ),
                       pw.SizedBox(height: 4),
                       pw.Text(
-                        'Filter: Class [$_pendingClassFilter] | Month [$_pendingMonthFilter]',
+                        'Filters: Year [$_pendingYearFilter] | Month [$_pendingMonthFilter] | Class [$_pendingClassFilter] | Section [$_pendingSectionFilter]',
                         style: const pw.TextStyle(fontSize: 9, color: PdfColors.grey800),
                       ),
+                      if (_pendingSearchQuery.isNotEmpty)
+                        pw.Text(
+                          'Search Query: "$_pendingSearchQuery"',
+                          style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey700),
+                        ),
                       pw.Text('Generated: $nowStr', style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey600)),
                     ],
                   ),
